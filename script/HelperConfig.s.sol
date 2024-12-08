@@ -29,7 +29,7 @@ contract HelperConfig is Script {
         return getNetworkConfigByChainId(block.chainid);
     }
 
-    function getNetworkConfigByChainId(uint256 chainId) public view returns (NetworkConfig memory) {
+    function getNetworkConfigByChainId(uint256 chainId) public returns (NetworkConfig memory) {
         if (chainId == LOCAL_CHAIN_ID) {
             return getOrCreateAnvilEthNetworkConfig();
         } else if (networkConfigs[chainId].account != address(0)) {
@@ -47,11 +47,13 @@ contract HelperConfig is Script {
         return NetworkConfig({entryPoint: address(0), account: BURNER_WALLET});
     }
 
-    function getOrCreateAnvilEthNetworkConfig() public view returns (NetworkConfig memory) {
+    function getOrCreateAnvilEthNetworkConfig() public returns (NetworkConfig memory) {
         if (localNetworkConfig.account != address(0)) {
             return localNetworkConfig;
         }
 
-        // deploy a mock
+        localNetworkConfig = NetworkConfig({entryPoint: address(0), account: ANVIL_DEFAULT_ACCOUNT});
+
+        return localNetworkConfig;
     }
 }
