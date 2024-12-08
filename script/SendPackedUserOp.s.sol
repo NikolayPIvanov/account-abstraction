@@ -4,8 +4,12 @@ pragma solidity ^0.8.28;
 import {Script} from "forge-std/Script.sol";
 import {PackedUserOperation} from "account-abstraction/interfaces/PackedUserOperation.sol";
 import {HelperConfig} from "script/HelperConfig.s.sol";
+import {IEntryPoint} from "lib/account-abstraction/contracts/interfaces/IEntryPoint.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-contract SendPackagedUserOp is Script {
+contract SendPackedUserOp is Script {
+    using MessageHashUtils for bytes32;
+
     function run() public {}
 
     function generateUserOperation(
@@ -17,7 +21,21 @@ contract SendPackagedUserOp is Script {
         uint256 nonce = vm.getNonce(minimalAccount) - 1;
         PackedUserOperation memory userOp = _generateUserOp(minimalAccount, nonce, callData);
 
-        // 2. Sign
+        // 2. Digest
+        bytes32 userOpHash = IEntryPoint(config.entryPoint).getUserOpHash(userOp);
+        bytes32 digest = userOpHash.toEthSignedMessageHash();
+
+        // 3. Sign
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+        if (block.chainid == 31337) {
+            (v, r, s) = vm.sign(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80, digest);
+        } else {
+            (v, r, s) = vm.sign(config.account, digest);
+        }
+        userOp.signature = abi.encodePacked(r, s, v); // !!!! The order is important !!!!
+        return userOp;
     }
 
     function _generateUserOp(address sender, uint256 nonce, bytes memory callData)
