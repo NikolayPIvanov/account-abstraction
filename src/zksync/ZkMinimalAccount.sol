@@ -10,6 +10,11 @@ import {
     Transaction,
     MemoryTransactionHelper
 } from "lib/foundry-era-contracts/src/system-contracts/contracts/libraries/MemoryTransactionHelper.sol";
+import {
+    NONCE_HOLDER_SYSTEM_CONTRACT,
+    BOOTLOADER_FORMAL_ADDRESS,
+    DEPLOYER_SYSTEM_CONTRACT
+} from "lib/foundry-era-contracts/src/system-contracts/contracts/Constants.sol";
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -31,6 +36,32 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * 9. If a paymaster was used, the postTransaction is called
  */
 contract ZkMinimalAccount is IAccount, Ownable {
+    using MemoryTransactionHelper for Transaction;
+
+    error ZkMinimalAccount__NotEnoughBalance();
+    error ZkMinimalAccount__NotFromBootLoader();
+    error ZkMinimalAccount__ExecutionFailed();
+    error ZkMinimalAccount__NotFromBootLoaderOrOwner();
+    error ZkMinimalAccount__FailedToPay();
+    error ZkMinimalAccount__InvalidSignature();
+
+    /*//////////////////////////////////////////////////////////////
+                               MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+    modifier requireFromBootLoader() {
+        if (msg.sender != BOOTLOADER_FORMAL_ADDRESS) {
+            revert ZkMinimalAccount__NotFromBootLoader();
+        }
+        _;
+    }
+
+    modifier requireFromBootLoaderOrOwner() {
+        if (msg.sender != BOOTLOADER_FORMAL_ADDRESS && msg.sender != owner()) {
+            revert ZkMinimalAccount__NotFromBootLoaderOrOwner();
+        }
+        _;
+    }
+
     constructor() Ownable(msg.sender) {}
 
     receive() external payable {}
